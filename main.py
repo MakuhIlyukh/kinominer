@@ -1,7 +1,8 @@
 from seleniumwire import webdriver as wire_webdriver
 from kinominer.time_functionality import NormalDelayGenerator
-from kinominer.userparser import UserParser
-from kinominer.callbacks import NoteItemUrl, NoteException, Callback, TqdmProgressBarCallback
+from kinominer.userparser import UserParser, MAIN_LABEL, VOTES_LABEL
+from kinominer.callbacks import (NoteItemUrl, NoteException,
+                                 Callback, TqdmProgressBarCallback)
 import tqdm 
 import json
 import time
@@ -23,7 +24,7 @@ u_parser.set_callbacks_list([NoteItemUrl(), # будет записывать ur
 ## Оставляем только те страницы, которые хотим парсить
 ## Здесь мы хотим парсить только страницы главные и оценок
 u_parser.parser_functions = [elem for elem in u_parser.parser_functions 
-                             if elem.label == 'main' or elem.label == 'votes']
+                             if elem.label == MAIN_LABEL or elem.label == VOTES_LABEL]
 
 # список ссылок на предметы, которые нужно запарсить
 urls = '''/user/406243/

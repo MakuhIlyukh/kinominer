@@ -1,7 +1,38 @@
+'''Содержит класс-интерфейс Callback, а также несколько его
+реализаций-наследников за подробностями обращайтесь к их документации.'''
 import time
 
-
 class Callback:
+    '''
+    Чтобы Parser мог вызывать код на определенном этапе парсинга
+    (например после окончания парсинга страницы или предмета),
+    в него надо передать объект наследника класса Callback, в котором
+    будет переопределён метод соответствующий определённому этапу парсинга.
+    Parser хранит список Callback'ов в поле parser.callbacks. Передав в этот
+    список объект наследника класса Callback, вы дадите возможность парсеру
+    вызвать этот метод при прохождении указанного этапа.
+
+    Пример создания кастомного Callback'а:
+        class MyCallback(Callback):
+            def on_item_begin(self, parser, item_url, item):
+                print(f'Парсится предмет с url = {item_url}')
+        
+        # Добавление в парсер
+        parser.callbacks.append(MyCallback())
+
+    Виды событий:
+    1) on_parsing_begin
+    2) on_item_begin
+    3) on_page_begin
+    4) on_page_end
+    5) on_item_end_ok
+    6) on_captcha_error
+    7) on_item_error
+    8) on_item_end_finally
+    9) on_parsing_end
+
+    За описанием событий обратитесь к документации соответсвующих методов
+    '''
     def on_parsing_begin(self, parser):
         '''Вызывается перед начало парсинга списка предметов'''
         pass
@@ -64,6 +95,7 @@ class Callback:
 
 
 def do_callbacks(callbacks, method_name, parser, item_url=None, item=None, exc=None):
+    '''Вызывает метод method_name для каждого элемента callbacks'''
     for callback in callbacks:
         method = getattr(callback, method_name)
         if item_url is None:

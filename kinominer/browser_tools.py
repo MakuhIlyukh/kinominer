@@ -34,10 +34,12 @@ def captcha_exists(driver):
 
 
 class CaptchaError(Exception):
+    '''Исключение для капчи'''
     pass
 
 
 def load_page(driver, url):
+    '''Загружает страницу, возбуждает исключение, если есть капча'''
     driver.get(url)
     if captcha_exists(driver):
         raise CaptchaError(url)
