@@ -2,3 +2,6 @@ geckodriver.log
 res.json
 __pycache__/
 kinominer/__pycache__/
+Lib/
+Scripts/
+pyvenv.cfg

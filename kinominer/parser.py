@@ -2,7 +2,6 @@ from kinominer.browser_tools import captcha_exists, CaptchaError
 from kinominer.callbacks import do_callbacks
 from kinominer.time_functionality import run_fun_with_delay
 from threading import Event, Thread
-import signal
 import os
 
 
