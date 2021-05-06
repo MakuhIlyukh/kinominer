@@ -52,6 +52,9 @@ class Parser:
             создав объект наследника класса Callback, в котором будет
             перегружен метод on_item_end_finally, и передав его в список
             Callbacks.
+        self.item_urls : list of str
+            Список из ссылок на предметы, с последнего запуска функции
+            self.parse
         self.stopped : threading.Event
             Событие обозначающее команду остановки парсера
 
@@ -132,9 +135,11 @@ class Parser:
         do_callbacks(self.callbacks, 'on_item_end_ok', self, item_url, item)
     
     def _parse_all(self, item_urls):
+        self.item_urls = item_urls
         self.driver.set_page_load_timeout(self.timeout)
         self.results = list()
         self.index = 0
+        do_callbacks(self.callbacks, 'on_parsing_begin', self)
         for ind, item_url in enumerate(item_urls):
             self.index = ind
             item = dict()
@@ -149,6 +154,7 @@ class Parser:
                 do_callbacks(self.callbacks, 'on_item_end_finally', self, item_url, item)
                 if self.stopped.is_set():
                     break
+        do_callbacks(self.callbacks, 'on_parsing_end', self)
 
     def set_functions_list(self, pf_list):
         '''

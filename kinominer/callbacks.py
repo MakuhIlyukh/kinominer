@@ -2,6 +2,10 @@ import time
 
 
 class Callback:
+    def on_parsing_begin(self, parser):
+        '''Вызывается перед начало парсинга списка предметов'''
+        pass
+
     def on_item_begin(self, parser, item_url, item):
         '''Вызывается перед парсингом предмета'''
         pass
@@ -35,13 +39,6 @@ class Callback:
         '''
         pass
 
-    def on_item_list_end(self, parser, item_url, item):
-        '''
-        Вызывается после окончания парсинга всех предметов из списка
-        Например, после окончания парсинга списка юзеров
-        '''
-        pass
-
     def on_captcha_error(self, parser, item_url, item, exc):
         '''
         Вызывается после появления капчи
@@ -57,15 +54,26 @@ class Callback:
         parser.exc - экземляр сгенерированного исключения
         '''
         pass
+    
+    def on_parsing_end(self, parser):
+        '''
+        Вызывается после окончания парсинга всех предметов из списка
+        Например, после окончания парсинга списка юзеров
+        '''
+        pass
 
 
-def do_callbacks(callbacks, method_name, parser, item_url, item, exc=None):
+def do_callbacks(callbacks, method_name, parser, item_url=None, item=None, exc=None):
     for callback in callbacks:
         method = getattr(callback, method_name)
-        if exc is None:
-            method(parser, item)
+        if item_url is None:
+            method(parser)
+        elif item is None:
+            method(parser, item_url)
+        elif exc is None:
+            method(parser, item_url, item)
         else:
-            method(parser, item, exc)
+            method(parser, item_url, item, exc)
 
 
 class WaitIfCaptchaCallback(Callback):
@@ -141,3 +149,16 @@ class NoteItemUrl(Callback):
     '''Сохраняет url предмета'''
     def on_item_begin(self, parser, item_url, item):
         item['__url__'] = item_url
+
+
+class TqdmProgressBarCallback(Callback):
+    '''Добавляет progressbar во время парсинга с помощью tqdm'''
+    def on_parsing_begin(self, parser):
+        from tqdm import tqdm
+        parser.pb = tqdm(total=len(parser.item_urls))
+
+    def on_item_end_finally(self, parser, item_url, item):
+        parser.pb.update(1)
+
+    def on_parsing_end(self, parser):
+        parser.pb.close()
