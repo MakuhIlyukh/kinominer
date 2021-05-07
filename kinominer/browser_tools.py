@@ -6,12 +6,18 @@ from selenium.common.exceptions import NoSuchElementException
 
 
 def del_requests(driver):
-    '''Очищает историю запросов в браузере'''
+    '''
+    Очищает историю запросов в браузере
+    Работает только для selenium-wire
+    '''
     del driver.requests
 
 
 def set_requests_filter(driver, whitelist):
-    '''Устанавливает фильтр записи запросов в браузере'''
+    '''
+    Устанавливает фильтр записи запросов в браузере
+    Работает только для selenium-wire
+    '''
     driver.scopes = whitelist
 
 

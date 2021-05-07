@@ -25,10 +25,138 @@ Kinominer -- пакет на Python, созданный для парсинга 
 
 В модуле `kinominer.parser` описан класс базового парсера, от которого наследуются остальные парсеры.
 
-В модуле `kinominer.userparser` описан наследник класса Parser, который реализует парсинг пользователей кинопоиска. Подходит как пример реализации парсера.
+В модуле `kinominer.userparser` описан наследник класса Parser, который реализует парсинг пользователей кинопоиска. ПОДХОДИТ КАК ПРИМЕР РЕАЛИЗАЦИИ ПАРСЕРА.
 
 Пример использования парсера
 ----------------------------
 
-Пример показан в файле main.py
+Пример показан в файле example.py
 
+Алгоритм реализации парсера
+---------------------------
+
+Чтобы реализовать парсер:
+
+1) Создайте класс-потомок класса `Parser` из `kinominer.parser` 
+2) Реализуйте методы парсинга внутри класса. Если потребуется при парсинге загрузить страницу, используйте метод `kinominer.browser_tools.load_page`, чтобы отследить возникновение капчи после загрузки. Метод загрузит страницу и сгенерирует исключение, если появилась капча.
+3) Оберните каждый реализованный метод в `ParserFunction` из `kinominer.parser`, добавив также произвольный псевдоним для метода, который не будет совпадать с псевдонимами для других методов.
+4) Добавьте полученные обертки в список `parser_functions` из класса `Parser`(или используйте метод `set_functions_list` из того же класса). 
+5) Первой строчкой в конструкторе наследника-класса вызовите конструктор базового класса
+
+``` Python
+class Inheritor(Parser):
+        def __init__(self, driver, delay_generator, timeout, callbacks=None):
+            # Не забудьте про вызов конструктора из базового класса
+            super().__init__(driver, delay_generator, timeout, callbacks)
+            self.parser_functions = [
+                ParserFunction(self.foo, 'fun1'),
+                ParserFunction(self.bar, 'fun2')
+            ]
+            # OR!
+            #self.set_functions_list([
+            #    ParserFunction(self.foo, 'fun1'),
+            #    ParserFunction(self.bar, 'fun2')
+            #])
+        
+        def foo(self, item_url, item):
+            # Тело функции может быть произвольным!
+            # Здесь функция говорит парсеру не выполнять функцию
+            # bar, если item_url == '12345', и выполнять в противном случае.
+            if item_url == '12345':
+                self.skip['fun2'] = True
+            else:
+                self.skip['fun2'] = False
+
+        def bar(self, item_url, item):
+            do_something()
+```
+
+Чтобы динамически определять, какие функции необходимо запускать,
+используйте словарь `skip` с ключом соответствущим псевдониму функции:
+
+``` Python
+self.skip['fun1'] = True
+```  
+
+Чтобы запустить парсинг, выполните метод `parse`. Чтобы послать сигнал остановки, выполните метод `stop`.
+
+Запуск парсера
+--------------
+
+Алгоритм действий: 
+
+1) Создайте экземпляр, который будет управлять браузером, используя библиотеку `selenium`(или `selenium-wire`, если вам нужно отслеживать запросы браузера)
+2) Создайте экземляр наследника класса DelayGenerator, который будет генерировать задержку между запуском функций парсера.
+3) Установите таймаут загрузки страницы 
+4) Создайте экземпляр наследника класса `Parser`, передав туда объекты из предыдущих пунктов
+5) Добавьте callback'и в список `callbacks` вашего парсера, если это требуется
+6) По желанию вы можете убрать из списка `parser_functions` некоторые функции, которые вы не хотите запускать во время парсинга.
+7) Создайте список из url предметов
+8) Запустите метод `parse`, передав туда список url из пункта 7.
+9) Для остановки парсера, выполните метод `stop`(делать это нужно из другого потока, потому что основной выполнение функции `parse`)
+
+``` Python
+'''
+Пример парсинга
+Данный код открывает браузер с помощью Selenium, парсит главную страницу
+и страницу оценок для каждого юзера из списка
+Сохраняет результат парсинга в json-формате с названием json.res
+'''
+from seleniumwire import webdriver as wire_webdriver
+from kinominer.time_functionality import NormalDelayGenerator
+from kinominer.userparser import UserParser, MAIN_LABEL, VOTES_LABEL
+from kinominer.callbacks import (NoteItemUrl, NoteException,
+                                 Callback, TqdmProgressBarCallback)
+import tqdm 
+import json
+import time
+
+# 1) открытие браузера
+#    обращайтесь к документации Selenium, если есть вопросы
+driver = wire_webdriver.Firefox(executable_path='geckodriver.exe')
+# Отдых после открытия
+time.sleep(2)
+
+# создание и настройка парсера
+# 2) установка задержки между загрузкой страниц
+#    вы можете реализовать собственную задержку унаследовавашись от
+#    класса DelayGenerator
+delay_generator = NormalDelayGenerator(3.5, 0.1, 3.2, 4)
+# 3) установка тайм-аута загрузки страницы в секундах
+timeout = 100
+# 4) создание экземпляра парсера
+u_parser = UserParser(driver, delay_generator, timeout)
+# 5) установка callback-ов
+u_parser.set_callbacks_list([
+    NoteItemUrl(), # будет записывать url предмета
+    NoteException(), # если возникнет исключение, оно будет записано
+    TqdmProgressBarCallback() # отображает progressbar
+]) 
+# 6) Оставляем только те страницы, которые хотим парсить.
+#    Здесь мы хотим парсить только страницы главные и оценок.
+u_parser.parser_functions = [elem for elem in u_parser.parser_functions 
+                             if elem.label == MAIN_LABEL \
+                             or elem.label == VOTES_LABEL]
+
+# 7) список ссылок на предметы, которые нужно запарсить
+urls = '''/user/406243/
+/user/679808/
+/user/723665/
+/user/16365722/
+/user/1482068/
+/user/773095/
+/user/4870742/'''.split('\n')
+
+# 8) Парсинг
+result = u_parser.parse(urls)
+
+
+# сохранение результата в json-file
+with open('res.json', 'w') as f:
+    json.dump(result, f)
+    
+driver.close()
+```
+
+О классе Parser
+===============
