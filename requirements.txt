@@ -1,0 +1,4 @@
+lxml
+numpy
+selenium
+selenium-wire
