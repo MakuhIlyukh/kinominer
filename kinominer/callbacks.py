@@ -32,6 +32,28 @@ class Callback:
     9) on_parsing_end
 
     За описанием событий обратитесь к документации соответсвующих методов
+
+    Последовательность вызовов callback'ов
+    --------------------------------------
+
+    Здесь представлен псевдокод, который изображает хронологию вызовов callback'ов:
+
+    call(on_parsing_begin)
+    for item in items:
+        try:
+            call(on_item_begin)
+            for function in self.parser_functions:
+                call(on_page_begin)
+                run(function)
+                call(on_page_end)
+            call(on_item_end_ok)
+        except CaptchaError:
+            call(on_captcha_error)
+        except Exception:
+            call(on_item_error)
+        finally:
+            call(on_item_end_finally)
+    call(on_parsing_end)
     '''
     def on_parsing_begin(self, parser):
         '''Вызывается перед начало парсинга списка предметов'''

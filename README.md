@@ -21,7 +21,7 @@ Kinominer -- пакет на Python, созданный для парсинга 
 
 В модуле `kinominer.time_functionality` находятся класс генератора случайной задержки и функция для выполнения функции с использованием задержки.
 
-В модуле `kinominer.callbacks` находится класс Callback, объекты, которого позволят выполнять ваш произвольный код в различные моменты парсинга. Там же расположены примеры его использования.
+В модуле `kinominer.callbacks` находится класс Callback, объекты которого позволят выполнять ваш произвольный код в различные моменты парсинга. Там же расположены примеры его использования.
 
 В модуле `kinominer.parser` описан класс базового парсера, от которого наследуются остальные парсеры.
 
@@ -30,7 +30,7 @@ Kinominer -- пакет на Python, созданный для парсинга 
 Пример использования парсера
 ----------------------------
 
-Пример показан в файле example.py
+Пример показан в файле `example.py`
 
 Алгоритм реализации парсера
 ---------------------------
@@ -125,6 +125,7 @@ delay_generator = NormalDelayGenerator(3.5, 0.1, 3.2, 4)
 # 3) установка тайм-аута загрузки страницы в секундах
 timeout = 100
 # 4) создание экземпляра парсера
+#    UserParser - наследник класса Parser
 u_parser = UserParser(driver, delay_generator, timeout)
 # 5) установка callback-ов
 u_parser.set_callbacks_list([
@@ -161,8 +162,8 @@ driver.close()
 О классе Parser
 ===============
 
-Поля и методы
-''''''''''''' 
+Поля
+----
 
     self.driver : драйвер браузера
     self.delay_generator : объект класса DelayGenerator
@@ -210,3 +211,78 @@ driver.close()
         self.parse
     self.stopped : threading.Event
         Событие обозначающее команду остановки парсера
+    
+Public Методы
+-------------
+
+    self.set_functions_list
+        Изменение поля parser_functions
+    self.set_callbacks_list
+        Изменение поля callbacks
+    self.stop
+        Останавливает парсер.
+        Эквивалентно выполнению команды self.stopped.set()
+    self.parse
+        Запуск парсера
+
+About Callbacks
+===============
+
+В модуле `kinominer.callbacks` находится класс `Callback`, объекты которого позволят выполнять ваш произвольный код в различные моменты парсинга. Там же расположены примеры его использования.
+
+Этапы парсинга, вызывающие callback'и
+-------------------------------------
+
+1) on_parsing_begin
+2) on_item_begin
+3) on_page_begin
+4) on_page_end
+5) on_item_end_ok
+6) on_captcha_error
+7) on_item_error
+8) on_item_end_finally
+9) on_parsing_end
+
+За описанием событий обратитесь к документации соответсвующих методов класса `Callback`.
+
+Последовательность вызовов callback'ов
+--------------------------------------
+
+Здесь представлен псевдокод, который изображает хронологию вызовов callback'ов:
+
+``` Python
+call(on_parsing_begin)
+for item in items:
+    try:
+        call(on_item_begin)
+        for function in self.parser_functions:
+            call(on_page_begin)
+            run(function)
+            call(on_page_end)
+        call(on_item_end_ok)
+    except CaptchaError:
+        call(on_captcha_error)
+    except Exception:
+        call(on_item_error)
+    finally:
+        call(on_item_end_finally)
+call(on_parsing_end)
+
+```
+
+Если было сгенерировано исключение в блоке `try`, то вызовы всех callback'ов в блоке `try` после возникновения исключения будут пропущены.
+
+Пример создания кастомного `Callback`'а
+-------------------------------------
+
+``` Python
+# Описание 
+class MyCallback(Callback):
+    def on_item_begin(self, parser, item_url, item):
+        print(f'Парсится предмет с url = {item_url}')
+
+# Добавление в парсер
+parser.callbacks.append(MyCallback())
+```
+
+В модуле `kinominer.callbacks` есть несколько кастомных Callback'ов, которые могут пригодиться.

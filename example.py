@@ -27,6 +27,7 @@ delay_generator = NormalDelayGenerator(3.5, 0.1, 3.2, 4)
 # 3) установка тайм-аута загрузки страницы в секундах
 timeout = 100
 # 4) создание экземпляра парсера
+#    UserParser - наследник класса Parser
 u_parser = UserParser(driver, delay_generator, timeout)
 # 5) установка callback-ов
 u_parser.set_callbacks_list([
