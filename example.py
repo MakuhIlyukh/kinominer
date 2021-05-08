@@ -4,14 +4,16 @@
 и страницу оценок для каждого юзера из списка
 Сохраняет результат парсинга в json-формате с названием json.res
 '''
+import json
+import time
+
+import tqdm 
 from seleniumwire import webdriver as wire_webdriver
+
 from kinominer.time_functionality import NormalDelayGenerator
 from kinominer.userparser import UserParser, MAIN_LABEL, VOTES_LABEL
 from kinominer.callbacks import (NoteItemUrl, NoteException,
                                  Callback, TqdmProgressBarCallback)
-import tqdm 
-import json
-import time
 
 # 1) открытие браузера
 #    обращайтесь к документации Selenium, если есть вопросы

@@ -1,7 +1,9 @@
 '''Функциональность связанная с временем'''
 import time
-import numpy as np
 from abc import abstractmethod
+
+import numpy as np
+
 
 class BaseDelayGenerator:
     @abstractmethod
@@ -14,7 +16,8 @@ class NormalDelayGenerator(BaseDelayGenerator):
 
     def __init__(self, mean, std, min_delay, max_delay):
         if min_delay >= max_delay:
-            raise ValueError('Минимальное значение не может быть больше максимального')
+            raise ValueError('Минимальное значение не может быть больше ' + 
+                             'максимального')
         self.mean = mean
         self.std = std
         self.min_delay = min_delay

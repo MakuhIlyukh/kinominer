@@ -1,10 +1,12 @@
 import json
+
 from lxml import html
+
 from kinominer.parser import Parser, ParserFunction
 from kinominer.browser_tools import (element_exists,
-                                    load_page,
-                                    set_requests_filter, 
-                                    del_requests)
+                                     load_page,
+                                     set_requests_filter, 
+                                     del_requests)
 from kinominer.time_functionality import run_fun_with_delay
 
 MAIN_LABEL = 'main'
@@ -33,9 +35,12 @@ class UserParser(Parser):
     
     def _parse_friends_page(self, user_url, user):
         '''парсинг друзей юзера'''
-        load_page(self.driver, 'https://www.kinopoisk.ru' + user_url + 'community/friends/perpage/200/')
+        load_page(self.driver, 'https://www.kinopoisk.ru' + user_url +
+                               'community/friends/perpage/200/')
         friends = list()
-        table = self.driver.find_element_by_xpath('/html/body/main/div[4]/div[1]/table/tbody/tr/td[1]/div/table[2]/tbody/tr/td/div[2]')
+        table = self.driver.find_element_by_xpath(
+                '/html/body/main/div[4]/div[1]/table/tbody/tr/td[1]/div/' + 
+                'table[2]/tbody/tr/td/div[2]')
         tree = html.fromstring(table.get_attribute('outerHTML'))
         for elem in tree:
             friends.append({'url' : elem[1][0][1].values()[0]})
@@ -43,18 +48,25 @@ class UserParser(Parser):
     
     def _parse_friended_page(self, user_url, user):
         '''Парсинг подписчиков юзера'''
-        load_page(self.driver, 'https://www.kinopoisk.ru' + user_url + 'community/friended/perpage/200/')
+        load_page(self.driver, 'https://www.kinopoisk.ru' + user_url + 
+                               'community/friended/perpage/200/')
         friended = list()
-        table = self.driver.find_element_by_xpath('/html/body/main/div[4]/div[1]/table/tbody/tr/td[1]/div/table[2]/tbody/tr/td/div[2]')
+        table = self.driver.find_element_by_xpath(
+                '/html/body/main/div[4]/div[1]/table/tbody/tr/td[1]/div/' +
+                'table[2]/tbody/tr/td/div[2]')
         tree = html.fromstring(table.get_attribute('outerHTML'))
         for elem in tree:
             friended.append({'url' : elem[1][0][1].values()[0]})
         user['friended'] = friended
     
     def _parse_votes_page(self, user_url, user):
-        '''Парсинг страницы оценок пользователя(если такая страница имеется)'''
+        '''
+        Парсинг страницы оценок пользователя(если такая страница
+        имеется)
+        '''
         set_requests_filter(self.driver, ['last_vote'])
-        load_page(self.driver, 'https://www.kinopoisk.ru' + user_url + 'votes/')
+        load_page(self.driver, 'https://www.kinopoisk.ru' + user_url +
+                               'votes/')
         req = self.driver.wait_for_request('last_vote', timeout=self.timeout)
         user['votes'] = self.__last_votes_to_json(req.response.body)
         del_requests(self.driver)

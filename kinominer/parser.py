@@ -1,8 +1,12 @@
+'''
+Модуль содержит класс Parser, который является основой парсинга.
+'''
+import os
+
 from kinominer.browser_tools import captcha_exists, CaptchaError
 from kinominer.callbacks import do_callbacks
 from kinominer.time_functionality import run_fun_with_delay
 from threading import Event, Thread
-import os
 
 
 class ParserFunction:
@@ -10,7 +14,10 @@ class ParserFunction:
     Обертка для функции.
     '''
     def __init__(self, function, label):
-        '''label у двух функций для одного парсера не должны совпадать'''
+        '''
+        label у двух функций для одного парсера не должны
+        совпадать
+        '''
         self.function = function
         self.label = label
 
@@ -25,57 +32,75 @@ class Parser:
         self.timeout : float
             Используется для указания таймаута загрузки страницы
         self.callbacks : list of Callback
-            Список экземпляров класса Callback. Если было сгенерировано
-            событие, то каждый экземпляр выполнит код, который соответствует
-            этому событию.
-            Чтобы Parser мог вызывать код на определенном этапе парсинга
-            (например после окончания парсинга страницы или предмета),
-            в него надо передать объект наследника класса Callback, в котором
-            будет переопределён метод соответствующий определённому этапу
-            парсинга. Parser хранит список Callback'ов в поле 
-            parser.callbacks. Передав в этот список объект наследника класса
-            Callback, вы дадите возможность парсеру вызвать этот метод при
-            прохождении указанного этапа.
-            За типами событий и примерами обращайтесь к kinominer.callbacks
+            Список экземпляров класса Callback. Если сгенерировано
+            событие, то каждый экземпляр выполнит код, который 
+            соответствует этому событию.
+            Чтобы Parser мог вызывать код на определенном этапе 
+            парсинга (например после окончания парсинга страницы или
+            предмета), в него надо передать объект наследника класса
+            Callback, в котором будет переопределён метод 
+            соответствующий определённому этапу парсинга. Parser хранит
+            список Callback'ов в поле callbacks. Передав в этот список
+            объект наследника класса Callback, вы дадите возможность
+            парсеру вызвать этот метод при прохождении указанного
+            этапа. За типами событий и примерами обращайтесь к
+            kinominer.callbacks
         self.parser_functions : list of ParserFunction
-            Список экземпляров класса ParserFunction. Каждый экземляр является
-            оберткой над методом объекта наследника класса Parser. Содержит
-            метод, его псевдоним. parser_functions - это функции,
-            которые парсер будет вызывать во в время парсинга. Именно в них
-            должен быть описан код парсинга страниц.
+            Список экземпляров класса ParserFunction. Каждый экземляр
+            является оберткой над методом объекта наследника класса
+            Parser. Содержит метод, его псевдоним. 
+            parser_functions - это функции, которые парсер будет
+            вызывать во в время парсинга. Именно в них должен быть
+            описан код парсинга страниц.
         self.skip : dict
-            Словарь, котором хранятся пары (label, flag), говорящие нужно ли
-            пропускать запуск функции с псевдонимом label из parser_functions.
+            Словарь, котором хранятся пары (label, flag), говорящие
+            нужно ли пропускать запуск функции с псевдонимом label
+            из parser_functions.
             Если skip[label] == True, то функция не запускается. 
-            Если skip[label] == False или нет ключа label, то запускается.
-            Значения можно менять от итерации к итерацие, таким образом
+            Если skip[label] == False или нет ключа label, то
+            запускается.
+            Значения можно менять от итерации к итерации, таким образом
             множество запускаемых функций будет зависить от предмета.
         self.results : list of dict
-            Результат парсинга - список словарей. Каждый словарь соответсвует
-            одному спаршенному элементу. Содержание словарей зависит от
-            содержимого self.parser_functions и callbacks
+            Результат парсинга - список словарей. Каждый словарь
+            соответсвует одному спаршенному элементу. Содержание
+            словарей зависит от содержимого self.parser_functions и
+            callbacks
         self.index : int
             Номер текущей итерации. Нужен, если захотите реализовать 
-            progress-bar. Хотя, обновление progress-bar'а можно реализовать,
-            создав объект наследника класса Callback, в котором будет
-            перегружен метод on_item_end_finally, и передав его в список
-            Callbacks.
+            progress-bar. Хотя, обновление progress-bar'а можно
+            реализовать, создав объект наследника класса Callback,
+            в котором будет перегружен метод on_item_end_finally, и
+            передав его в список сallbacks.
         self.item_urls : list of str
             Список из ссылок на предметы, с последнего запуска функции
             self.parse
         self.stopped : threading.Event
             Событие обозначающее команду остановки парсера
 
+    Public Методы:
+        self.set_functions_list
+            Изменение поля parser_functions
+        self.set_callbacks_list
+            Изменение поля callbacks
+        self.stop
+            Останавливает парсер.
+            Эквивалентно выполнению команды self.stopped.set()
+        self.parse
+            Запуск парсера
+        
     Чтобы реализовать парсер: 
     1) Создайте класс-потомок
-    2) Реализуйте функции парсинга внутри класса. Если потребуется загрузить
-       страницу, используйте метод kinominer.browser_tools.load_page,
-       чтобы отследить возникновение капчи после загрузки. Метод загрузит
-       страницу и сгенерирует исключение, если появилась капча.
+    2) Реализуйте функции парсинга внутри класса. Если потребуется
+       загрузить страницу, используйте метод 
+       kinominer.browser_tools.load_page, чтобы отследить возникновение
+       капчи после загрузки. Метод загрузит страницу и сгенерирует
+       исключение, если появилась капча.
     3) Оберните их в ParserFunction
     4) Добавьте полученные обертки в список parser_functions
        (или используйте метод set_functions_list),
-    5) Первой строчкой в конструкторе вызовите конструктор базового класса
+    5) Первой строчкой в конструкторе вызовите конструктор базового
+       класса
     6) Можете также добавить список Callback'ов
 
     class Inheritor(Parser):
@@ -112,12 +137,13 @@ class Parser:
         self.delay_generator : объект класса DelayGenerator
             Используется для генерации задержки между вызовами функций
         self.timeout : float
-            Используется для установки таймаута загрузки страницы(в секундах)
+            Используется для установки таймаута загрузки страницы
+            (в секундах)
         self.callbacks : list of Callback
             Список экземпляров класса Callback. Если было сгенерировано
-            событие, то каждый экземпляр выполнит код, который соответствует
-            этому событию. За типами событий и примерами обращайтесь к
-            модулю kinominer.callbacks
+            событие, то каждый экземпляр выполнит код, который
+            соответствует этому событию. За типами событий и примерами
+            обращайтесь к модулю kinominer.callbacks
         '''
         self.driver = driver
         self.delay_generator = delay_generator
@@ -137,9 +163,11 @@ class Parser:
         args = (item_url, item)
         for pf in self.parser_functions:
             if pf.label not in self.skip or not self.skip[pf.label]:
-                do_callbacks(self.callbacks, 'on_page_begin', self, item_url, item)
+                do_callbacks(self.callbacks, 'on_page_begin',
+                             self, item_url, item)
                 run_fun_with_delay(pf.function, args, self.delay_generator)
-                do_callbacks(self.callbacks, 'on_page_end', self, item_url, item)
+                do_callbacks(self.callbacks, 'on_page_end',
+                             self, item_url, item)
         do_callbacks(self.callbacks, 'on_item_end_ok', self, item_url, item)
     
     def _parse_all(self, item_urls):
@@ -155,11 +183,14 @@ class Parser:
             try:
                 self._parse_item(item_url, item)
             except CaptchaError as e:
-                do_callbacks(self.callbacks, 'on_captcha_error', self, item_url, item, e)
+                do_callbacks(self.callbacks, 'on_captcha_error',
+                             self, item_url, item, e)
             except Exception as e:
-                do_callbacks(self.callbacks, 'on_item_error', self, item_url, item, e)
+                do_callbacks(self.callbacks, 'on_item_error',
+                             self, item_url, item, e)
             finally:
-                do_callbacks(self.callbacks, 'on_item_end_finally', self, item_url, item)
+                do_callbacks(self.callbacks, 'on_item_end_finally',
+                             self, item_url, item)
                 if self.stopped.is_set():
                     break
         do_callbacks(self.callbacks, 'on_parsing_end', self)
@@ -189,7 +220,8 @@ class Parser:
 
     def parse(self, item_urls):
         '''
-        Парсит список предметов, вызывая функции из self.parser_functions
+        Парсит список предметов, вызывая функции из 
+        self.parser_functions
 
         item_urls : list of str
             Список ссылок на предметы
